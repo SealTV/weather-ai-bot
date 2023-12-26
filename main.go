@@ -1,38 +1,28 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
-	"net/url"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
-type GeoResponse struct {
-	Results []LatLong `json:"results"`
+func init() {
+	pflag.String("log_level", log.DebugLevel.String(), "Logging level")
+
+	pflag.Duration("refresh_timeout", 5*time.Second, "Refresh timeout")
+
+	pflag.String("mongo_uri", "mongo://localhost:27017", "MongoDB url")
+	pflag.String("postgres_uri", "postgres://root:1234@localhost:5432/root?sslmode=disable", "Postgres connection string")
+
+	pflag.String("openai_api_key", "secret_key", "OpenAI API key")
+
+	pflag.Parse()
+	_ = viper.BindPFlags(pflag.CommandLine)
+	viper.AutomaticEnv()
 }
 
-type LatLong struct {
-	Latitude float64 `json:"latitude"`
-	LatLong  float64 `json:"longitude"`
-}
+func main() {
 
-func getLatLong(city string) (*LatLong, error) {
-	endpoint := fmt.Sprintf("https://geocoding-api.open-meteo.com/v1/search?name=%s&count=1&language=en&format=json", url.QueryEscape(city))
-	resp, err := http.Get(endpoint)
-	if err != nil {
-		return nil, fmt.Errorf("error making request to Geo API: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var response GeoResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("error decoding response: %w", err)
-	}
-
-	if len(response.Results) < 1 {
-		return nil, errors.New("no results found")
-	}
-
-	return &response.Results[0], nil
 }
